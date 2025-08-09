@@ -1,9 +1,9 @@
 package auth_repositories
 
 import (
-	"context"
 	"fmt"
 	"strings"
+	"subscriber-topic-stars/src/dtos/auth_dtos"
 	"subscriber-topic-stars/src/entities/auth"
 	"subscriber-topic-stars/src/entities/users"
 	"subscriber-topic-stars/src/helpers"
@@ -13,7 +13,7 @@ import (
 )
 
 type AuthRepositoryInterface interface {
-	Register(ctx context.Context, email string, username string, password string) (map[string]interface{}, error)
+	Register(req auth_dtos.RequestRegisterDto) (map[string]interface{}, error)
 	FindByEmail(email string) (*users.User, error)
 	FindByUsername(username string) (*users.User, error)
 	CreateUser(user *users.User) error
@@ -31,25 +31,26 @@ func NewAuthRepository() *authRepository {
 	return &authRepository{}
 }
 
-func (r *authRepository) Register(ctx context.Context, email string, username string, password string) (map[string]interface{}, error) {
+func (r *authRepository) Register(req auth_dtos.RequestRegisterDto) (map[string]interface{}, error) {
 
-	if _, err := r.FindByEmail(email); err == nil {
+	if _, err := r.FindByEmail(req.Email); err == nil {
 		return nil, fmt.Errorf("email already in use %w", err)
 	}
 
-	if _, err := r.FindByUsername(username); err == nil {
+	if _, err := r.FindByUsername(req.Username); err == nil {
 		return nil, fmt.Errorf("username already in use %w", err)
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, fmt.Errorf("could not hash password: %w", err)
 	}
 
 	newUser := users.User{
-		Email:    email,
-		Username: username,
+		Email:    req.Email,
+		Username: req.Username,
 		Password: string(hashedPassword),
+		Name:     req.Name,
 	}
 
 	if err := helpers.InsertModel(&newUser); err != nil {
@@ -61,6 +62,7 @@ func (r *authRepository) Register(ctx context.Context, email string, username st
 		"id":       newUser.ID,
 		"email":    newUser.Email,
 		"username": newUser.Username,
+		"name":     newUser.Name,
 	}
 	return response, nil
 }

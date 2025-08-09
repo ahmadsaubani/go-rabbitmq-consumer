@@ -14,7 +14,7 @@ import (
 )
 
 type AuthServiceInterface interface {
-	Register(ctx context.Context, email string, username string, password string) (map[string]interface{}, error)
+	Register(req auth_dtos.RequestRegisterDto) (map[string]interface{}, error)
 	Login(email string, password string) (gin.H, error)
 	GenerateTokens(userID uint64) (*auth_dtos.TokenResultDto, error)
 	RefreshToken(ctx context.Context, refreshTokenString string) (*auth_dtos.TokenResultDto, error)
@@ -38,8 +38,8 @@ func NewAuthService(repo auth_repositories.AuthRepositoryInterface) *AuthService
 	return &AuthService{authRepo: repo}
 }
 
-func (s *AuthService) Register(ctx context.Context, email string, username string, password string) (map[string]interface{}, error) {
-	response, err := s.authRepo.Register(ctx, email, username, password)
+func (s *AuthService) Register(req auth_dtos.RequestRegisterDto) (map[string]interface{}, error) {
+	response, err := s.authRepo.Register(req)
 	if err != nil {
 		return nil, fmt.Errorf("could not register user: %w", err)
 	}

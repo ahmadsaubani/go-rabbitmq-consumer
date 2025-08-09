@@ -45,8 +45,13 @@ func main() {
 	repo := auth_repositories.NewAuthRepository()
 	authService := auth_services.NewAuthService(repo)
 
-	// Pasangkan handler Login
+	// LOGIN
 	err = rabbitmqs.StartRPCConsumer("auth.login.request", "", auth_handlers.LoginRPCHandler(authService))
+	if err != nil {
+		log.Fatalf("Failed to start consumer: %v", err)
+	}
+
+	err = rabbitmqs.StartRPCConsumer("auth.register.request", "", auth_handlers.RegisterRPCHandler(authService))
 	if err != nil {
 		log.Fatalf("Failed to start consumer: %v", err)
 	}
