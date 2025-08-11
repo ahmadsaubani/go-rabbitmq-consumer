@@ -60,6 +60,7 @@ func (s *ThreadService) GetAllThreads(token map[string]interface{}) (map[string]
 	var response []thread_dtos.ThreadResponseDto
 	for _, thread := range threads {
 		response = append(response, thread_dtos.ThreadResponseDto{
+			UUID:        thread.UUID,
 			ID:          thread.ID,
 			Title:       thread.Title,
 			Description: thread.Description,

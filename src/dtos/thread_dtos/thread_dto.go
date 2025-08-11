@@ -12,6 +12,7 @@ type ThreadRequestDto struct {
 }
 
 type ThreadResponseDto struct {
+	UUID        string    `json:"uuid"`
 	ID          uint64    `json:"id"`
 	Title       string    `json:"title"`
 	Description string    `json:"description"`

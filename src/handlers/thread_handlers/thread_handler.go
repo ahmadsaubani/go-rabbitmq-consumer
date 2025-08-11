@@ -10,8 +10,6 @@ import (
 	"time"
 
 	"encoding/json"
-
-	"github.com/gin-gonic/gin"
 )
 
 func CreateThreadRPCHandler(threadService thread_services.ThreadServiceInterface) func([]byte) ([]byte, error) {
@@ -33,12 +31,6 @@ func CreateThreadRPCHandler(threadService thread_services.ThreadServiceInterface
 		}
 
 		redis.DelKey(fmt.Sprintf("threads:list"))
-
-		if resultJSON, err := json.Marshal(result); err == nil {
-			data := result.(gin.H)
-			fmt.Printf("delete cache for thread detail : %s\n", data["uuid"])
-			_ = redis.SetKey(fmt.Sprintf("thread:detail:%s", data["uuid"]), resultJSON, 5*time.Minute)
-		}
 
 		return json.Marshal(result)
 	}

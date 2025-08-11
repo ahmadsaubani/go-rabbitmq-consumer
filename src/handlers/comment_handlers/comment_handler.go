@@ -1,9 +1,11 @@
 package comment_handlers
 
 import (
+	"fmt"
 	"subscriber-topic-stars/src/dtos/comment_dtos"
 	"subscriber-topic-stars/src/helpers"
 	"subscriber-topic-stars/src/services/comment_services"
+	"subscriber-topic-stars/src/utils/redis"
 
 	"encoding/json"
 )
@@ -25,6 +27,9 @@ func CreateCommentRPCHandler(commentServices comment_services.CommentServiceInte
 		}
 
 		result, err := commentServices.CreateComment(token, req)
+
+		key := fmt.Sprintf("thread:detail:%s", req.ThreadID)
+		redis.DelKey(key)
 
 		if err != nil {
 			resp := helpers.RPCResponse{
