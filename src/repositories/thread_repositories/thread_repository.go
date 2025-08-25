@@ -21,11 +21,11 @@ type ThreadRepositoryInterface interface {
 
 type threadRepository struct{}
 
-func NewThreadRepository() *threadRepository {
-	return &threadRepository{}
+func NewThreadRepository() threadRepository {
+	return threadRepository{}
 }
 
-func (r *threadRepository) Create(title string, description string, userID uint64) (*threads.Thread, error) {
+func (r threadRepository) Create(title string, description string, userID uint64) (*threads.Thread, error) {
 
 	if _, err := r.FindUserById(userID); err != nil {
 		return nil, fmt.Errorf("user not found :  %w", err)
@@ -43,7 +43,7 @@ func (r *threadRepository) Create(title string, description string, userID uint6
 	return &newThread, nil
 }
 
-func (r *threadRepository) FindUserById(userID uint64) (*users.User, error) {
+func (r threadRepository) FindUserById(userID uint64) (*users.User, error) {
 	var user users.User
 
 	err := helpers.FindOneByField(&user, "id", userID)
@@ -54,7 +54,7 @@ func (r *threadRepository) FindUserById(userID uint64) (*users.User, error) {
 	return &user, nil
 }
 
-func (r *threadRepository) GetAll() ([]threads.Thread, error) {
+func (r threadRepository) GetAll() ([]threads.Thread, error) {
 
 	var threadsList []threads.Thread
 	if err := helpers.GettingAllModels(&threadsList, []string{"User"}); err != nil {
@@ -64,7 +64,7 @@ func (r *threadRepository) GetAll() ([]threads.Thread, error) {
 	return threadsList, nil
 }
 
-func (r *threadRepository) FindThreadDetailByUUID(threadID string) (*threads.Thread, error) {
+func (r threadRepository) FindThreadDetailByUUID(threadID string) (*threads.Thread, error) {
 	var thread threads.Thread
 	err := helpers.FindOneByFieldWithPreload(
 		&thread,
@@ -83,7 +83,7 @@ func (r *threadRepository) FindThreadDetailByUUID(threadID string) (*threads.Thr
 	return &thread, err
 }
 
-func (r *threadRepository) AddLike(threadID uint64, userID uint64) (*thread_likes.ThreadLike, error) {
+func (r threadRepository) AddLike(threadID uint64, userID uint64) (*thread_likes.ThreadLike, error) {
 	like := thread_likes.ThreadLike{
 		ThreadID: threadID,
 		UserID:   userID,
@@ -94,7 +94,7 @@ func (r *threadRepository) AddLike(threadID uint64, userID uint64) (*thread_like
 	return &like, nil
 }
 
-func (r *threadRepository) CountLikes(threadID uint64) (int64, error) {
+func (r threadRepository) CountLikes(threadID uint64) (int64, error) {
 	return helpers.CountModelWithFilter[thread_likes.ThreadLike](func(db *gorm.DB) *gorm.DB {
 		return db.Where("thread_id = ?", threadID)
 	})

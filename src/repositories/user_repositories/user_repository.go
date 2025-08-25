@@ -12,11 +12,11 @@ type UserRepositoryInterface interface {
 
 type userRepository struct{}
 
-func NewUserRepositoryInterface() *userRepository {
-	return &userRepository{}
+func NewUserRepository() userRepository {
+	return userRepository{}
 }
 
-func (u *userRepository) FindUserById(UserID uint64) (*users.User, error) {
+func (u userRepository) FindUserById(UserID uint64) (*users.User, error) {
 	var user users.User
 	if err := helpers.FindOneByField(&user, "id", UserID); err != nil {
 		return nil, fmt.Errorf("user not found: %w", err)

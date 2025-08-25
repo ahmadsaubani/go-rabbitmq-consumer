@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"subscriber-topic-stars/src/helpers"
-	"subscriber-topic-stars/src/services/user_services"
+	"subscriber-topic-stars/src/services"
 	"subscriber-topic-stars/src/utils/redis"
 	"time"
 )
@@ -13,18 +13,26 @@ type Request struct {
 	Token string `json:"token"`
 }
 
-// []byte digunakan utk menangani komunikasi RPC via RabbitMQ, yang bekerja dengan payload berbentuk byte array
-func UserProfileRPCHandler(userService user_services.UserServiceInterface) func([]byte) ([]byte, error) {
-	return func(requestBody []byte) ([]byte, error) {
-		// Struktur permintaan dari publisher
+type UserHandler interface {
+	UserProfileRPCHandler() func([]byte) ([]byte, error)
+}
 
+type userHandler struct {
+	services services.ServiceCenter
+}
+
+func NewUserHandler(services services.ServiceCenter) UserHandler {
+	return userHandler{services: services}
+}
+
+func (h userHandler) UserProfileRPCHandler() func([]byte) ([]byte, error) {
+	return func(requestBody []byte) ([]byte, error) {
 		var req Request
 		if err := json.Unmarshal(requestBody, &req); err != nil {
-			resp := helpers.RPCResponse{
+			return json.Marshal(helpers.RPCResponse{
 				Success: false,
 				Message: "Invalid request format",
-			}
-			return json.Marshal(resp)
+			})
 		}
 
 		cacheKey := fmt.Sprintf("user:profile:%s", req.Token)
@@ -36,18 +44,17 @@ func UserProfileRPCHandler(userService user_services.UserServiceInterface) func(
 			return []byte(cachedData), nil
 		}
 
-		// karena service meminta map[string]interface{} sebagai input
+		// Input untuk service
 		msg := map[string]interface{}{
 			"token": req.Token,
 		}
 
-		result, err := userService.GetUser(msg)
+		result, err := h.services.User.GetUser(msg)
 		if err != nil {
-			resp := helpers.RPCResponse{
+			return json.Marshal(helpers.RPCResponse{
 				Success: false,
 				Message: err.Error(),
-			}
-			return json.Marshal(resp)
+			})
 		}
 
 		resultJSON, err := json.Marshal(result)
@@ -55,7 +62,6 @@ func UserProfileRPCHandler(userService user_services.UserServiceInterface) func(
 			return nil, err
 		}
 
-		// Simpan ke Redis 5 menit aja broww
 		_ = redis.SetKey(cacheKey, resultJSON, 5*time.Minute)
 
 		return resultJSON, nil

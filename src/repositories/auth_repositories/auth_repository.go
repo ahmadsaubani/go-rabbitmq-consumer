@@ -27,11 +27,11 @@ type AuthRepositoryInterface interface {
 
 type authRepository struct{}
 
-func NewAuthRepository() *authRepository {
-	return &authRepository{}
+func NewAuthRepository() authRepository {
+	return authRepository{}
 }
 
-func (r *authRepository) Register(req auth_dtos.RequestRegisterDto) (map[string]interface{}, error) {
+func (r authRepository) Register(req auth_dtos.RequestRegisterDto) (map[string]interface{}, error) {
 
 	if _, err := r.FindByEmail(req.Email); err == nil {
 		return nil, fmt.Errorf("email already in use %w", err)
@@ -67,10 +67,8 @@ func (r *authRepository) Register(req auth_dtos.RequestRegisterDto) (map[string]
 	return response, nil
 }
 
-// FindByEmail mencari user berdasarkan email menggunakan helper
-func (r *authRepository) FindByEmail(email string) (*users.User, error) {
+func (r authRepository) FindByEmail(email string) (*users.User, error) {
 	var user users.User
-	// Menggunakan helper untuk mencari user berdasarkan email
 	err := helpers.FindOneByField(&user, "email", email)
 	if err != nil {
 		return nil, fmt.Errorf("email not found: %w", err)
@@ -79,7 +77,7 @@ func (r *authRepository) FindByEmail(email string) (*users.User, error) {
 	return &user, nil
 }
 
-func (r *authRepository) FindByUsername(username string) (*users.User, error) {
+func (r authRepository) FindByUsername(username string) (*users.User, error) {
 	var user users.User
 	err := helpers.FindOneByField(&user, "username", username)
 	if err != nil {
@@ -88,17 +86,16 @@ func (r *authRepository) FindByUsername(username string) (*users.User, error) {
 	return &user, nil
 }
 
-func (r *authRepository) CreateUser(user *users.User) error {
+func (r authRepository) CreateUser(user *users.User) error {
 	return helpers.InsertModel(user)
 }
 
-func (r *authRepository) SaveTokens(userID uint64, accessToken string, accessExp time.Time, refreshToken string, refreshExp time.Time) error {
+func (r authRepository) SaveTokens(userID uint64, accessToken string, accessExp time.Time, refreshToken string, refreshExp time.Time) error {
 	const maxRetries = 3
 
 	var access auth.AccessToken
 	var err error
 
-	// Retry insert access token
 	for i := 0; i < maxRetries; i++ {
 		access = auth.AccessToken{
 			UserID:    userID,
@@ -116,7 +113,6 @@ func (r *authRepository) SaveTokens(userID uint64, accessToken string, accessExp
 		return fmt.Errorf("failed insert access token: %w", err)
 	}
 
-	// Retry insert refresh token
 	var refresh auth.RefreshToken
 	for i := 0; i < maxRetries; i++ {
 		refresh = auth.RefreshToken{
@@ -139,7 +135,7 @@ func (r *authRepository) SaveTokens(userID uint64, accessToken string, accessExp
 	return nil
 }
 
-func (r *authRepository) FindRefreshToken(token string) (*auth.RefreshToken, error) {
+func (r authRepository) FindRefreshToken(token string) (*auth.RefreshToken, error) {
 	var refresh auth.RefreshToken
 	if err := helpers.FindOneByField(&refresh, "token", token); err != nil {
 		return nil, fmt.Errorf("token not found: %w", err)
@@ -147,7 +143,7 @@ func (r *authRepository) FindRefreshToken(token string) (*auth.RefreshToken, err
 	return &refresh, nil
 }
 
-func (r *authRepository) FindRefreshTokenByAccessTokenID(accessTokenID uint64) (*auth.RefreshToken, error) {
+func (r authRepository) FindRefreshTokenByAccessTokenID(accessTokenID uint64) (*auth.RefreshToken, error) {
 	var refresh auth.RefreshToken
 	err := helpers.FindOneByField(&refresh, "access_token_id", accessTokenID)
 	if err != nil {
@@ -156,30 +152,24 @@ func (r *authRepository) FindRefreshTokenByAccessTokenID(accessTokenID uint64) (
 	return &refresh, nil
 }
 
-func (r *authRepository) MarkRefreshTokenAsUsed(id uint64) error {
+func (r authRepository) MarkRefreshTokenAsUsed(id uint64) error {
 	refresh := auth.RefreshToken{
 		Claimed: true,
 	}
 	return helpers.UpdateModelByID(&refresh, id)
 }
 
-// MarkTokenAsRevoked menandai token sebagai revoked di database
-func (r *authRepository) MarkTokenAsRevoked(tokenID uint64) error {
-	// Buat map dengan field yang ingin diupdate
+func (r authRepository) MarkTokenAsRevoked(tokenID uint64) error {
 	updatedFields := map[string]interface{}{
-		"revoked": true, // Hanya field revoked yang diupdate
+		"revoked": true,
 	}
 
-	// Panggil helper untuk update berdasarkan ID dan field yang ingin diupdate
-	// Kita memastikan tipe model yang digunakan eksplisit
 	return helpers.UpdateModelByIDWithMap[auth.AccessToken](updatedFields, tokenID)
 }
 
-// FindTokenByUserIDAndToken mencari token berdasarkan user_id dan token string
-func (r *authRepository) FindTokenByUserIDAndToken(userID uint64, tokenString string) (*auth.AccessToken, error) {
+func (r authRepository) FindTokenByUserIDAndToken(userID uint64, tokenString string) (*auth.AccessToken, error) {
 	var token auth.AccessToken
 	tokenString = strings.TrimSpace(tokenString)
-	// Menggunakan helper untuk mencari token berdasarkan user_id dan token string
 	err := helpers.FindOneByField(&token, "user_id", userID, "token", tokenString, "revoked", false)
 	if err != nil {
 		return nil, fmt.Errorf("token not found or already revoked: %w", err)

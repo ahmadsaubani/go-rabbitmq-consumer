@@ -2,6 +2,9 @@ package redis
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"strconv"
 	"time"
 
 	redis "github.com/redis/go-redis/v9"
@@ -10,15 +13,32 @@ import (
 var ctx = context.Background()
 var redisClient *redis.Client
 
-// Redis tidak ditangani di handler atau main.go.
-// Redis ditangani di layer service, agar bersih, reusable, dan scalable.
-// Handler hanya terima request (dalam []byte), ubah ke struct, dan kirim ke service.
-func InitRedis(addr, password string, db int) {
+func InitRedis() error {
+	fmt.Println("start init redis")
+	host := os.Getenv("REDIS_HOST")
+	if host == "" {
+		fmt.Println("REDIS_HOST environment variable not set")
+	}
+
+	password := os.Getenv("REDIS_PASSWORD")
+	if password == "" {
+		fmt.Println("REDIS_PASSWORD environment variable not set")
+	}
+
+	redisDB, err := strconv.Atoi(os.Getenv("REDIS_DB"))
+	if err != nil {
+		fmt.Println("REDIS_DB environment variable not set")
+	}
+
 	redisClient = redis.NewClient(&redis.Options{
-		Addr:     addr,
+		Addr:     host,
 		Password: password,
-		DB:       db,
+		DB:       redisDB,
 	})
+
+	fmt.Println("redis started")
+
+	return nil
 }
 
 func SetKey(key string, value interface{}, expiration time.Duration) error {

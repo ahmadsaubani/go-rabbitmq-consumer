@@ -5,14 +5,29 @@ import (
 	"subscriber-topic-stars/src/dtos/thread_dtos"
 	"subscriber-topic-stars/src/dtos/thread_like_dtos"
 	"subscriber-topic-stars/src/helpers"
-	"subscriber-topic-stars/src/services/thread_services"
+	"subscriber-topic-stars/src/services"
 	"subscriber-topic-stars/src/utils/redis"
 	"time"
 
 	"encoding/json"
 )
 
-func CreateThreadRPCHandler(threadService thread_services.ThreadServiceInterface) func([]byte) ([]byte, error) {
+type ThreadHandler interface {
+	CreateThreadRPCHandler() func([]byte) ([]byte, error)
+	GetAllThreadHandler() func([]byte) ([]byte, error)
+	GetThreadDetailHandler() func([]byte) ([]byte, error)
+	LikeThreadHandler() func([]byte) ([]byte, error)
+}
+
+type threadHandler struct {
+	services services.ServiceCenter
+}
+
+func NewThreadHandler(services services.ServiceCenter) ThreadHandler {
+	return threadHandler{services: services}
+}
+
+func (h threadHandler) CreateThreadRPCHandler() func([]byte) ([]byte, error) {
 	return func(requestBody []byte) ([]byte, error) {
 		var req thread_dtos.ThreadRequestDto
 		if err := json.Unmarshal(requestBody, &req); err != nil {
@@ -24,7 +39,7 @@ func CreateThreadRPCHandler(threadService thread_services.ThreadServiceInterface
 			"token": req.Token,
 		}
 
-		result, err := threadService.CreateThread(msg, req.Title, req.Description)
+		result, err := h.services.Thread.CreateThread(msg, req.Title, req.Description)
 		if err != nil {
 			resp := helpers.RPCResponse{Success: false, Message: err.Error()}
 			return json.Marshal(resp)
@@ -36,7 +51,7 @@ func CreateThreadRPCHandler(threadService thread_services.ThreadServiceInterface
 	}
 }
 
-func GetAllThreadHandler(threadService thread_services.ThreadServiceInterface) func([]byte) ([]byte, error) {
+func (t threadHandler) GetAllThreadHandler() func([]byte) ([]byte, error) {
 	return func(requestBody []byte) ([]byte, error) {
 		var req thread_dtos.ThreadRequestDto
 		if err := json.Unmarshal(requestBody, &req); err != nil {
@@ -56,7 +71,7 @@ func GetAllThreadHandler(threadService thread_services.ThreadServiceInterface) f
 			return []byte(cached), nil
 		}
 
-		result, err := threadService.GetAllThreads(msg)
+		result, err := t.services.Thread.GetAllThreads(msg)
 		if err != nil {
 			fmt.Println("Error retrieving threads:", err)
 			resp := helpers.RPCResponse{Success: false, Message: err.Error()}
@@ -73,7 +88,7 @@ func GetAllThreadHandler(threadService thread_services.ThreadServiceInterface) f
 	}
 }
 
-func GetThreadDetailHandler(threadService thread_services.ThreadServiceInterface) func([]byte) ([]byte, error) {
+func (t threadHandler) GetThreadDetailHandler() func([]byte) ([]byte, error) {
 	return func(requestBody []byte) ([]byte, error) {
 
 		var req thread_dtos.ThreadDetailRequestDto
@@ -96,7 +111,7 @@ func GetThreadDetailHandler(threadService thread_services.ThreadServiceInterface
 		msg := map[string]interface{}{
 			"token": req.Token,
 		}
-		result, err := threadService.GetThreadDetail(msg, req.ThreadID)
+		result, err := t.services.Thread.GetThreadDetail(msg, req.ThreadID)
 		if err != nil {
 			resp := helpers.RPCResponse{
 				Success: false,
@@ -114,7 +129,7 @@ func GetThreadDetailHandler(threadService thread_services.ThreadServiceInterface
 	}
 }
 
-func LikeThreadHandler(threadService thread_services.ThreadServiceInterface) func([]byte) ([]byte, error) {
+func (t threadHandler) LikeThreadHandler() func([]byte) ([]byte, error) {
 	return func(requestBody []byte) ([]byte, error) {
 		var req thread_like_dtos.ThreadLikeRequestDto
 		if err := json.Unmarshal(requestBody, &req); err != nil {
@@ -131,7 +146,7 @@ func LikeThreadHandler(threadService thread_services.ThreadServiceInterface) fun
 
 		token := map[string]interface{}{"token": req.Token}
 
-		result, err := threadService.LikeThreadService(token, req.ThreadID)
+		result, err := t.services.Thread.LikeThreadService(token, req.ThreadID)
 		if err != nil {
 			resp := helpers.RPCResponse{
 				Success: false,

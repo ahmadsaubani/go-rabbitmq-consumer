@@ -19,20 +19,22 @@ type CommentRepositoryInterface interface {
 
 type commentRepository struct{}
 
-func NewCommentRepository() *commentRepository {
-	return &commentRepository{}
+func NewCommentRepository() commentRepository {
+	return commentRepository{}
 }
 
-func (r *commentRepository) Create(req comment_dtos.CreateCommentRequest) (*comments.Comment, error) {
-
+func (r commentRepository) Create(req comment_dtos.CreateCommentRequest) (*comments.Comment, error) {
+	fmt.Println("di repo :", req)
 	user, err := r.FindUserById(req.UserID)
 	if err != nil {
-		return nil, err
+		return nil,
+			err
 	}
 
 	thread, err := r.FindThreadByUUID(req.ThreadID)
 	if err != nil {
-		return nil, err
+		return nil,
+			err
 	}
 
 	newComment := comments.Comment{
@@ -41,12 +43,16 @@ func (r *commentRepository) Create(req comment_dtos.CreateCommentRequest) (*comm
 		Comment:  req.Comment,
 	}
 
-	parent, err := r.FindParentByUUID(*req.ParentID)
-	if err != nil {
-		return nil, err
-	}
-	if parent != nil {
-		newComment.ParentID = &parent.ID
+	if req.ParentID != nil {
+
+		parent, err := r.FindParentByUUID(*req.ParentID)
+		if err != nil {
+			return nil,
+				err
+		}
+		if parent != nil {
+			newComment.ParentID = &parent.ID
+		}
 	}
 
 	if err := helpers.InsertModel(&newComment); err != nil {
@@ -55,7 +61,7 @@ func (r *commentRepository) Create(req comment_dtos.CreateCommentRequest) (*comm
 	return &newComment, nil
 }
 
-func (r *commentRepository) FindUserById(userID uint64) (*users.User, error) {
+func (r commentRepository) FindUserById(userID uint64) (*users.User, error) {
 	var user users.User
 
 	err := helpers.FindOneByField(&user, "id", userID)
@@ -66,21 +72,24 @@ func (r *commentRepository) FindUserById(userID uint64) (*users.User, error) {
 	return &user, nil
 }
 
-func (r *commentRepository) FindParentByUUID(parentID string) (*comments.Comment, error) {
+func (r commentRepository) FindParentByUUID(parentID string) (*comments.Comment, error) {
 	var comment comments.Comment
-
 	if parentID == "" {
-		return nil, nil
+
+		return nil,
+			nil
 	}
 
 	err := helpers.FindOneByField(&comment, "uuid", parentID)
 	if err != nil {
 		return nil, fmt.Errorf("comment not found: %w", err)
 	}
+
+	fmt.Println(comment)
 	return &comment, nil
 }
 
-func (r *commentRepository) FindThreadByUUID(threadID string) (*threads.Thread, error) {
+func (r commentRepository) FindThreadByUUID(threadID string) (*threads.Thread, error) {
 	var thread threads.Thread
 
 	err := helpers.FindOneByField(&thread, "uuid", threadID)
@@ -90,11 +99,11 @@ func (r *commentRepository) FindThreadByUUID(threadID string) (*threads.Thread, 
 	return &thread, nil
 }
 
-func (r *commentRepository) FindCommentsByThreadID(threadID uint64) ([]comments.Comment, error) {
-	var comments []comments.Comment
-	err := helpers.GettingAllModels(&comments, []string{"User", "Thread"}, "thread_id = ?", threadID)
+func (r commentRepository) FindCommentsByThreadID(threadID uint64) ([]comments.Comment, error) {
+	var varComment []comments.Comment
+	err := helpers.GettingAllModels(&varComment, []string{"User", "Thread"}, "thread_id = ?", threadID)
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve comments: %w", err)
 	}
-	return comments, nil
+	return varComment, nil
 }
